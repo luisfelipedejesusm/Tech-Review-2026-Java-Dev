@@ -154,3 +154,210 @@
     - **Deadlock**: When two or more threads are waiting on eachother, freezig the execution completely. Solution: use timeouts.
 
     - **Starvation**: This happens when a thread never gets access to resources because others dominate. Solution: Use faire locks (`ReentrantLock`) and avoid priority abuse.
+
+### Exceptions 
+- **Checked Exceptions**: These are compiled time exceptions that need to be handle before compiling the application. Most common checked exceptions are:
+    - `IOException`
+    - `SQLException`
+    - `FileNotFoundException`
+
+- **UncheckedExceptions**: Exceptions that you are not forced to handle before compilation. They extend the super class `RunetimeException`. Most common unchecked exceptions are:
+    - `NullPointerException`
+    - `IllegalArgumentException`
+    - `IndexOutOfBoundException`
+
+- **Custom Exceptions**: You can create your custom exceptions by extending from one of the following classes:
+     - `RunetimeException` for unchecked exceptions
+        ```java
+        public class CustomUncheckedException extends RunetimeException {
+            public CustomUncheckedException(String message){
+                super(message);
+        }
+        ```
+    - `Exception` for checked exceptions
+        ```java
+        public class CustomCheckedException extends Exception {
+            public CustomCheckedException(String message){
+                super(message);
+        }
+        ```
+    - *Note: You can extend from any other class that extends one of these 2 classes to create your custom exceptions*
+
+### Functional Programming
+- **Lambda Expressions**: this is a short way to represent a function without creating a full class.
+    ```java
+    // Instead of creating
+    Comparator<String> comp = new Comparator<String>() {
+        @Override
+        public int compare(String a, String b) {
+            return a.length() - b.length();
+        }
+    }
+
+    // We can write
+    Comparator<String> comp = (a, b) => a.length() - b.length();
+    ```
+
+- **Functional Interfaces**: interface with only one abstract method. Lambdas only work with functional interfaces. The most common build-in are:
+    - `Function<T, R>` input → output
+    - `Consumer<T>` input → no return
+    - `Supplier<T>` no input → return
+    - `Predicate<T>` input → bool
+
+- **Streams API**: this API lets you process collections in a declarative, pipeline style
+    ```java
+    List<Integer> result = list.stream()
+        .filter(x -> x > 10)
+        .map(x -> x * 2)
+        .toList();
+    ```
+
+    Some of the most used methods from streams api:
+    - `.map()` transforms each element
+        ```java
+        // takes a lists of integers and multiply each one by 2
+        list.stream().map(x -> x * 2);
+        ```
+    - `.filter()` keeps elements that match a condition
+        ```java
+        // filter elements less than 10
+        list.stream().filter(x -> x > 10);
+        ```
+    -  `.reduce()` combines elements into one value
+        ```java
+        int sum = list.stream()
+            .reduce(0, (accumulator, element) -> accumulator + element);
+        ```
+
+### Design Patterns
+- **Singleton**: Only one instance of a class exists globally. 
+    ```java
+    public class Singleton {
+        public static final Singleton INSTANCE = new Singleton();
+        private Singleton(){}
+        public static Singleton getInstance(){
+            return INSTANCE;
+        }
+    }
+    ```
+    However, this pattern has some downsides. It has a hidden global state, is hard to test and is tightly coupled. A better alternative is to use Dependency Injection:
+    ```java
+    // Using Spring
+    @Service
+    public class MyService {}
+    ```
+- **Factory**: Creates objects without exposing instantiation logic. This is used when object creation is complex or when you return different implementations.
+    ```java
+    interface Payment {
+        void pay();
+    }
+
+    class CardPayment implements Payment {
+        public void pay() {
+            System.out.println("Paying using card");
+        }
+    }
+
+    // Now the Factory
+    class PaymentFactory {
+        public static Payment create(String type) {
+            if ("card".equals(type))
+                return new CardPayment();
+            throw new IllegalArgumentException();
+        }
+    }
+    ```
+- **Builder**: Builds complex objects step by step. This allow to have many optional field without saturating the class cosntructor and allows immutable objects
+    ```java
+    class User {
+        private final String name;
+        private final int age;
+
+        private User(Builder builder){
+            this.name = builder.name;
+            this.age = builder.age;
+        }
+
+        public static class Builder {
+            private String name;
+            private int age;
+
+            public Builder name(String name) {
+                this.name = name;
+                return this;
+            }
+
+            public Builder age(int age) {
+                this.age = age;
+                return this;
+            }
+
+            public User build() {
+                return new User(this);
+            }
+        }
+    }
+    ```
+
+- **Strategy**: Swap algorithms at runtime
+    ```java
+    interface DiscountStrategy {
+        double apply(double price);
+    }
+
+    class NoDiscount implements DiscountStrategy {
+        public double apply(double price) {
+            return price;
+        }
+    }
+
+    class DiscountContext {
+        private DiscountStrategy strategy;
+
+        public DiscountContext(DiscountStrategy strategy){
+            this.strategy = strategy;
+        }
+
+        public double calculate(double price){
+            return strategy.apply(price);
+        }
+    }
+    ```
+
+- **Observer**: One-to-Many dependency. When one changes, others get notified. Good for event systems, messaging or UI updates. *Note: kafka or other messaging framework is often used instead, especially using Spring*
+    ```java
+    interface Observer {
+        void update(String msg);
+    }
+
+    class Subscriber implements Observer {
+        public void update(String msg) {
+            System.out.println("Received: " + msg);
+        }
+    }
+
+    class Publisher {
+        private List<Observers> observers = new ArrayList<>();
+
+        public void addObserver(Observer o){
+            observers.add(o);
+        }
+
+        public void notifyObservers(String msg){
+            observers.forEach(o -> o.update(msg));
+        }
+    }
+    ```
+
+- **Dependency Injection**: Instead of creating dependencies, inject them.
+    ```java
+    @Service
+    public class OrderService {
+        private final PaymentService paymentService;
+
+        public OrderSerice(PaymentService paymentService) {
+            this.paymentService = paymentService;
+        }
+    }
+    ```
+    *Note: in Spring, you can use `@Autowired` to inject directly the dependencies, however this is less recommended as it makes testing harder*
